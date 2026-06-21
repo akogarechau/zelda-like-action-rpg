@@ -86,8 +86,10 @@ class Game:
             elif event.key == pygame.K_DOWN:
                 self.menu_index = (self.menu_index + 1) % len(self.menu_options)
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                if self.menu_index == 0: self.hard_reset()
-                else: self.running = False
+                if self.menu_index == 0:
+                    self.hard_reset()
+                else:
+                    self.running = False
                         
         elif self.state == "STATE_GAME_OVER":
             if event.key == pygame.K_UP:
@@ -95,8 +97,10 @@ class Game:
             elif event.key == pygame.K_DOWN:
                 self.game_over_index = (self.game_over_index + 1) % len(self.game_over_options)
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                if self.game_over_index == 0: self.hard_reset()
-                else: self.running = False
+                if self.game_over_index == 0:
+                    self.hard_reset()
+                else:
+                    self.running = False
 
         elif self.state == "STATE_PLAYING":
             if event.key == pygame.K_SPACE and self.player.state == "IDLE":
@@ -312,10 +316,12 @@ class Game:
         new_x, new_y = dx * WIDTH * (1.0 - self.trans_prog), dy * HEIGHT * (1.0 - self.trans_prog)
         self.screen.fill(COLOR_BLACK)
         
-        old_room = pygame.Surface((WIDTH, HEIGHT)); old_room.fill(self.world.rooms_bg[self.world.current_room])
+        old_room = pygame.Surface((WIDTH, HEIGHT))
+        old_room.fill(self.world.rooms_bg[self.world.current_room])
         self.screen.blit(old_room, (old_x, old_y))
         
-        new_room = pygame.Surface((WIDTH, HEIGHT)); new_room.fill(self.world.rooms_bg[self.next_room])
+        new_room = pygame.Surface((WIDTH, HEIGHT))
+        new_room.fill(self.world.rooms_bg[self.next_room])
         self.screen.blit(new_room, (new_x, new_y))
         
         pygame.draw.rect(self.screen, COLOR_PLAYER, self.player.rect)
