@@ -1,23 +1,32 @@
 import pygame
 import random
-from src.settings import WIDTH, HEIGHT
+from src.settings import (
+    WIDTH, HEIGHT, ENEMY_SIZE, ENEMY_SPEED, ENEMY_HP,
+    PLAYER_SIZE, PLAYER_SPEED, PLAYER_MAX_HP,
+    PROJECTILE_SIZE, PROJECTILE_SPEED
+)
 
-class Projectile:
+class Projectile(pygame.sprite.Sprite):
     def __init__(self, x, y, dx, dy, is_enemy):
-        self.rect = pygame.Rect(x, y, 10, 10)
-        self.dx, self.dy = dx, dy
-        self.speed = 7
+        super().__init__()
+        self.rect = pygame.Rect(x, y, PROJECTILE_SIZE, PROJECTILE_SIZE)
+        self.dx = dx
+        self.dy = dy
+        self.speed = PROJECTILE_SPEED
         self.is_enemy = is_enemy
 
     def update(self):
         self.rect.x += self.dx * self.speed
         self.rect.y += self.dy * self.speed
+        if not pygame.display.get_surface().get_rect().colliderect(self.rect):
+            self.kill()
 
-class Enemy:
+class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 40, 40)
-        self.hp = 100
-        self.speed = 2
+        super().__init__()
+        self.rect = pygame.Rect(x, y, ENEMY_SIZE, ENEMY_SIZE)
+        self.hp = ENEMY_HP
+        self.speed = ENEMY_SPEED
         self.facing = random.choice([(0, -1), (0, 1), (-1, 0), (1, 0)])
         self.state = "ROAMING"
         self.roam_timer = random.randint(30, 90)
@@ -25,16 +34,16 @@ class Enemy:
         self.stun_timer = 0
         self.knockback_dir = (0, 0)
         self.flash_timer = 0
-        self.screen_bounds = pygame.Rect(0, 0, WIDTH, HEIGHT) # Границы для коллизий
+        self.screen_bounds = pygame.Rect(0, 0, WIDTH, HEIGHT)
 
-    def update(self):
+    def update(self, projectiles_group=None):
         if self.flash_timer > 0:
             self.flash_timer -= 1
             
         if self.state == "STUNNED":
             self.rect.x += self.knockback_dir[0] * 4
             self.rect.y += self.knockback_dir[1] * 4
-            self.rect.clamp_ip(self.screen_bounds) # Фикс вылета за границы при стане
+            self.rect.clamp_ip(self.screen_bounds)
             self.stun_timer -= 1
             if self.stun_timer <= 0:
                 self.state = "ROAMING"
@@ -54,19 +63,25 @@ class Enemy:
             if self.roam_timer <= 0 or not self.screen_bounds.contains(self.rect):
                 self.rect.clamp_ip(self.screen_bounds)
                 dirs = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-                if self.facing in dirs: dirs.remove(self.facing)
+                if self.facing in dirs:
+                    dirs.remove(self.facing)
                 self.facing = random.choice(dirs)
                 self.roam_timer = random.randint(30, 90)
                 
             if self.attack_timer <= 30:
                 self.state = "ATTACKING"
 
-class Player:
+        if self.state == "ATTACKING" and self.attack_timer == 30 and projectiles_group is not None:
+            proj = Projectile(self.rect.centerx, self.rect.centery, self.facing[0], self.facing[1], True)
+            projectiles_group.add(proj)
+
+class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 40, 40)
-        self.speed = 5
-        self.max_hp = 5
-        self.current_hp = 5
+        super().__init__()
+        self.rect = pygame.Rect(x, y, PLAYER_SIZE, PLAYER_SIZE)
+        self.speed = PLAYER_SPEED
+        self.max_hp = PLAYER_MAX_HP
+        self.current_hp = PLAYER_MAX_HP
         self.state = "IDLE"
         self.facing = (0, 1)
         self.invul_timer = 0
@@ -80,7 +95,8 @@ class Player:
     def take_damage(self, damage, source_x, source_y):
         if self.invul_timer == 0 and self.state != "STUNNED" and self.current_hp > 0:
             self.current_hp -= damage
-            if self.current_hp < 0: self.current_hp = 0
+            if self.current_hp < 0:
+                self.current_hp = 0
             
             if self.current_hp > 0:
                 self.state = "STUNNED"

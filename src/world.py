@@ -1,4 +1,4 @@
-# src/world.py
+import pygame
 from src.entities import Enemy
 
 class WorldManager:
@@ -8,10 +8,17 @@ class WorldManager:
             (0, 1): (40, 70, 40), (1, 1): (70, 70, 40)
         }
         self.current_room = (0, 0)
+
         self.room_enemies = {
-            (0, 0): [Enemy(300, 200)], 
-            (1, 0): [Enemy(400, 300), Enemy(200, 400)],
-            (0, 1): [Enemy(500, 200)], 
-            (1, 1): [Enemy(350, 250), Enemy(600, 400)]
+            (0, 0): pygame.sprite.Group(Enemy(300, 200)), 
+            (1, 0): pygame.sprite.Group(Enemy(400, 300), Enemy(200, 400)),
+            (0, 1): pygame.sprite.Group(Enemy(500, 200)), 
+            (1, 1): pygame.sprite.Group(Enemy(350, 250), Enemy(600, 400))
         }
-        self.room_projectiles = {(0,0):[], (1,0):[], (0,1):[], (1,1):[]}
+
+        self.room_projectiles = {
+            (0, 0): pygame.sprite.Group(), 
+            (1, 0): pygame.sprite.Group(), 
+            (0, 1): pygame.sprite.Group(), 
+            (1, 1): pygame.sprite.Group()
+        }
