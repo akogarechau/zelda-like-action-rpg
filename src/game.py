@@ -4,7 +4,7 @@ from src.settings import (
     COLOR_BG_MENU, COLOR_TEXT_MAIN, COLOR_TEXT_SELECT, COLOR_TEXT_MUTED,
     COLOR_TEXT_GAMEOVER, COLOR_TEXT_GAMEOVER_MUTED, COLOR_BLACK,
     COLOR_PROJECTILE, COLOR_SWORD, COLOR_PLAYER, COLOR_SHIELD,
-    COLOR_ENEMY_DEFAULT, SWORD_SIZE
+    SWORD_SIZE, PLAYER_ATTACK_COOLDOWN
 )
 from src.entities import Player, Projectile
 from src.world import WorldManager
@@ -103,9 +103,10 @@ class Game:
                     self.running = False
 
         elif self.state == "STATE_PLAYING":
-            if event.key == pygame.K_SPACE and self.player.state == "IDLE":
+            if event.key == pygame.K_SPACE and self.player.state == "IDLE" and self.player.attack_cooldown <= 0:
                 self.player.state = "ATTACKING"
                 self.player.attack_timer = 15
+                self.player.attack_cooldown = PLAYER_ATTACK_COOLDOWN
                 self.player.sword_rect = pygame.Rect(0, 0, SWORD_SIZE, SWORD_SIZE)
                 self.player.sword_rect.center = (
                     self.player.rect.centerx + self.player.facing[0]*40, 
@@ -134,6 +135,9 @@ class Game:
     def _update_playing(self):
         if self.player.invul_timer > 0:
             self.player.invul_timer -= 1
+
+        if self.player.attack_cooldown > 0:
+            self.player.attack_cooldown -= 1
 
         if self.player.current_hp <= 0:
             self.state = "STATE_DEATH_ANIMATION"
@@ -173,7 +177,7 @@ class Game:
         enemies = self.world.room_enemies.get(cur_r)
         projectiles = self.world.room_projectiles.get(cur_r)
 
-        enemies.update(projectiles)
+        enemies.update(self.player, projectiles)
         projectiles.update()
 
         self._handle_collisions(enemies, projectiles)
@@ -197,6 +201,9 @@ class Game:
 
     def _handle_collisions(self, enemies, projectiles):
         for enemy in enemies:
+            if getattr(enemy, 'is_underground', False): 
+                continue
+                
             if enemy.rect.colliderect(self.player.rect):
                 self.player.take_damage(1, enemy.rect.centerx, enemy.rect.centery)
             if self.player.sword_rect and enemy.rect.colliderect(self.player.sword_rect) and enemy.state != "STUNNED":
@@ -210,13 +217,17 @@ class Game:
         for proj in projectiles:
             if proj.is_enemy:
                 if proj.rect.colliderect(self.player.rect):
-                    if self.player.state == "IDLE" and proj.dx == -self.player.facing[0] and proj.dy == -self.player.facing[1]:
+                    dot_product = proj.dx * self.player.facing[0] + proj.dy * self.player.facing[1]
+                    if self.player.state == "IDLE" and dot_product < -0.5:
                         pass 
                     else:
                         self.player.take_damage(1, proj.rect.centerx, proj.rect.centery)
                     proj.kill()
             else:
                 for enemy in enemies:
+                    if getattr(enemy, 'is_underground', False):
+                        continue
+                        
                     if proj.rect.colliderect(enemy.rect):
                         enemy.hp -= 1
                         enemy.state, enemy.stun_timer, enemy.knockback_dir = "STUNNED", 10, (proj.dx, proj.dy)
@@ -266,8 +277,16 @@ class Game:
         
         cur_r = self.world.current_room
         for enemy in self.world.room_enemies.get(cur_r): 
-            color = COLOR_TEXT_MAIN if enemy.flash_timer > 0 else COLOR_ENEMY_DEFAULT
-            pygame.draw.rect(self.screen, color, enemy.rect)
+            if getattr(enemy, 'is_underground', False) and enemy.state == "HIDDEN":
+                continue 
+                
+            color = COLOR_TEXT_MAIN if enemy.flash_timer > 0 else enemy.color
+            
+            if getattr(enemy, 'state', '') in ("DIGGING", "EMERGING"):
+                draw_rect = enemy.rect.inflate(-20, -20)
+                pygame.draw.rect(self.screen, color, draw_rect)
+            else:
+                pygame.draw.rect(self.screen, color, enemy.rect)
             
         for proj in self.world.room_projectiles.get(cur_r): 
             pygame.draw.rect(self.screen, COLOR_PROJECTILE, proj.rect)

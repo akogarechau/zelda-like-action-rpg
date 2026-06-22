@@ -1,5 +1,5 @@
 import pygame
-from src.entities import Enemy
+from src.entities import Enemy, Shooter, Driller
 
 class WorldManager:
     def __init__(self):
@@ -11,9 +11,10 @@ class WorldManager:
 
         self.room_enemies = {
             (0, 0): pygame.sprite.Group(Enemy(300, 200)), 
-            (1, 0): pygame.sprite.Group(Enemy(400, 300), Enemy(200, 400)),
-            (0, 1): pygame.sprite.Group(Enemy(500, 200)), 
-            (1, 1): pygame.sprite.Group(Enemy(350, 250), Enemy(600, 400))
+            (1, 0): pygame.sprite.Group(Shooter(400, 300), Enemy(200, 400)),
+            (0, 1): pygame.sprite.Group(Driller(500, 200)), 
+            (1, 1): pygame.sprite.Group(Shooter(100, 500), Shooter(700, 100), Shooter(700, 500),
+                                        Driller(300, 200), Driller(200, 300))
         }
 
         self.room_projectiles = {
